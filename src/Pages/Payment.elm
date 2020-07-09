@@ -84,7 +84,7 @@ wallets =
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { tab = Nothing
-      , window = Size 0 0
+      , window = Size session.flags.width session.flags.height
       , search = ""
       , cardNumber = ""
       , expiry = ""
@@ -271,6 +271,36 @@ placeholder_img size attrs =
 
 
 
+-- Tabs
+
+
+tab_header val device =
+    case device of
+        Phone ->
+            el [ height (px 50), paddingXY 30 0 ] <|
+                el [ width fill, alignBottom, Font.color Styles.text_grey ] <|
+                    text val
+
+        _ ->
+            el
+                [ height (px 60)
+                , width fill
+                , Border.widthEach { edges | bottom = 1 }
+                , Border.color Styles.light_grey
+                , paddingEach { edges | bottom = 20, left = 30, top = 25 }
+                ]
+            <|
+                el [ alignBottom ] (text val)
+
+
+pay_button =
+    el [ paddingXY 60 0, width fill, height (px 40), Font.color Styles.white, Font.bold, Font.size 13 ] <|
+        el [ width (px 200), height fill, Background.color Styles.red, Border.rounded 2 ] <|
+            el [ centerX, centerY ] <|
+                text "Proceed to Pay"
+
+
+
 -- Credit Tab
 
 
@@ -286,9 +316,9 @@ credit_tab model device =
                     False
 
         popular_bank val =
-            Element.column [ width (px 30), height (px 60) ]
+            column [ width (px 30), height (px 60) ]
                 [ placeholder_img 40 [ centerX ]
-                , Element.el [ centerX ] <| text val
+                , el [ centerX ] <| text val
                 ]
 
         input val callback temp =
@@ -298,12 +328,12 @@ credit_tab model device =
                 ]
                 { onChange = callback
                 , text = val
-                , placeholder = Just (Input.placeholder [] <| Element.row [ centerY, spacing 5, Font.color (rgb255 200 200 200) ] [ text temp ])
+                , placeholder = Just (Input.placeholder [] <| row [ centerY, spacing 5, Font.color (rgb255 200 200 200) ] [ text temp ])
                 , label = Input.labelHidden ""
                 }
 
-        pay_button =
-            Element.el
+        proceed_button =
+            el
                 [ width
                     (if is_phone then
                         fill
@@ -317,20 +347,17 @@ credit_tab model device =
                 , Font.size 15
                 ]
             <|
-                Element.el [ width fill, height fill, Background.color Styles.dark_grey, Border.rounded 2 ] <|
-                    Element.el [ centerX, centerY ] <|
+                el [ width fill, height fill, Background.color Styles.dark_grey, Border.rounded 2 ] <|
+                    el [ centerX, centerY ] <|
                         text "Proceed to Pay"
 
-        tab_header =
+        custom_tab_header =
             case device of
                 Phone ->
-                    Element.el
-                        [ height (px 10)
-                        ]
-                        Element.none
+                    el [ height (px 10) ] Element.none
 
                 _ ->
-                    Element.el
+                    el
                         [ height (px 60)
                         , width fill
                         , Border.widthEach { edges | bottom = 1 }
@@ -338,7 +365,7 @@ credit_tab model device =
                         , paddingEach { edges | bottom = 20, left = 30, top = 25 }
                         ]
                     <|
-                        Element.el [ alignBottom ] (text "Enter Debit / Credit Card Details")
+                        el [ alignBottom ] (text "Enter Debit / Credit Card Details")
 
         bg_color =
             case device of
@@ -350,27 +377,47 @@ credit_tab model device =
 
         border_shadow =
             if is_phone then
-                Border.shadow
-                    { offset = ( 0, 0 )
-                    , size = 1
-                    , blur = 2
-                    , color = rgba255 0 0 0 0.1
-                    }
+                Styles.border_shadow
 
             else
                 Border.width 0
+
+        card_number =
+            column [ width fill, spacing 10, paddingXY 0 20, Font.color Styles.text_grey ]
+                [ el [ Font.color Styles.text_grey ] <| text "Card Number"
+                , row [ width (fill |> maximum 500), spacing Styles.sp_sml ]
+                    [ el [ height fill, width (fill |> maximum 400) ] <| input model.cardNumber CardNumberInput "Enter card number here"
+                    , el [] <| placeholder_img 40 []
+                    ]
+                ]
+
+        expiry_field =
+            column [ width (fill |> maximum 150), spacing 10, Font.color Styles.text_grey ]
+                [ el [ Font.color Styles.text_grey ] <| text "Expiry"
+                , row [ width fill, spacing Styles.sp_sml ]
+                    [ el [ height fill, width fill ] <| input model.expiry ExpiryInput "MM / YY"
+                    ]
+                ]
+
+        cvv_field =
+            column [ width (fill |> maximum 150), spacing 10, Font.color Styles.text_grey ]
+                [ el [ Font.color Styles.text_grey ] <| text "CVV"
+                , row [ width fill, spacing Styles.sp_sml ]
+                    [ el [ height fill, width fill, inFront <| placeholder_img 20 [ alignRight, centerY, paddingEach { edges | right = 25 } ] ] <| input model.cvv CVVInput "CVV"
+                    ]
+                ]
     in
-    Element.column
+    column
         [ width fill
         , height fill
-        , spacing 20
+        , spacing Styles.sp_sml
         , Background.color bg_color
         ]
-        [ tab_header
-        , Element.column [ width fill, paddingXY 30 0, spacing 20 ]
-            [ Element.column
+        [ custom_tab_header
+        , column [ width fill, paddingXY Styles.pd_med 0, spacing Styles.sp_sml ]
+            [ column
                 [ width fill
-                , spacing 20
+                , spacing Styles.sp_sml
                 , Background.color Styles.white
                 , Border.rounded 10
                 , border_shadow
@@ -380,29 +427,16 @@ credit_tab model device =
                   else
                     padding 0
                 ]
-                [ Element.column [ width fill, spacing 10, paddingXY 0 20, Font.color Styles.text_grey ]
-                    [ Element.el [ Font.color Styles.text_grey ] <| text "Card Number"
-                    , Element.row [ width (fill |> maximum 500), spacing 20 ]
-                        [ Element.el [ height fill, width (fill |> maximum 400) ] <| input model.cardNumber CardNumberInput "Enter card number here"
-                        , Element.el [] <| placeholder_img 40 []
-                        ]
+                [ card_number
+                , row [ width fill, spacing 20 ]
+                    [ expiry_field
+                    , cvv_field
                     ]
-                , Element.row [ width fill, spacing 20 ]
-                    [ Element.column [ width (fill |> maximum 150), spacing 10, Font.color Styles.text_grey ]
-                        [ Element.el [ Font.color Styles.text_grey ] <| text "Expiry"
-                        , Element.row [ width fill, spacing 20 ]
-                            [ Element.el [ height fill, width fill ] <| input model.expiry ExpiryInput "MM / YY"
-                            ]
-                        ]
-                    , Element.column [ width (fill |> maximum 150), spacing 10, Font.color Styles.text_grey ]
-                        [ Element.el [ Font.color Styles.text_grey ] <| text "CVV"
-                        , Element.row [ width fill, spacing 20 ]
-                            [ Element.el [ height fill, width fill, inFront <| placeholder_img 20 [ alignRight, centerY, paddingEach { edges | right = 25 } ] ] <| input model.cvv CVVInput "CVV"
-                            ]
-                        ]
+                , row [ Font.color Styles.text_grey, spacing 15, paddingXY 0 15 ]
+                    [ placeholder_img 20 []
+                    , text "Save this card for faster payments"
                     ]
-                , Element.row [ Font.color Styles.text_grey, spacing 15, paddingXY 0 15 ] [ placeholder_img 20 [], text "Save this card for faster payments" ]
-                , pay_button
+                , proceed_button
                 ]
             ]
         ]
@@ -422,43 +456,38 @@ searchbar val =
                 ]
                 { onChange = SearchInput
                 , text = val
-                , placeholder = Just (Input.placeholder [] <| Element.row [ centerY, spacing 5, Font.color (rgb255 200 200 200) ] [ placeholder_img 20 [], text "Search" ])
+                , placeholder = Just (Input.placeholder [] <| row [ centerY, spacing 5, Font.color (rgb255 200 200 200) ] [ placeholder_img 20 [], text "Search" ])
                 , label = Input.labelHidden ""
                 }
     in
-    Element.el [ width fill, height (px 40) ] <| search
+    el [ width fill, height (px 40) ] <| search
 
 
 netbanking_tab : Model -> DeviceClass -> Element Msg
 netbanking_tab model device =
     let
         popular_bank val =
-            Element.column [ width (px 30), height (px 60) ]
+            column [ width (px 30), height (px 60) ]
                 [ placeholder_img 40 [ centerX ]
-                , Element.el [ centerX ] <| text val
+                , el [ centerX ] <| text val
                 ]
 
-        pay_button =
-            Element.el [ paddingXY 60 0, width fill, height (px 40), Font.color Styles.white, Font.bold, Font.size 13 ] <|
-                Element.el [ width (px 200), height fill, Background.color Styles.red, Border.rounded 2 ] <|
-                    Element.el [ centerX, centerY ] <|
-                        text "Proceed to Pay"
+        icon_url active =
+            if active then
+                check_url
+
+            else
+                circle_url
 
         bank_list_item i ( val, active ) =
-            Element.column [ width fill ]
-                [ Element.row [ width fill, height (px 60), spacing 20, onClick (SelectBank i) ]
+            column [ width fill ]
+                [ row [ width fill, height (px 60), spacing 20, onClick (SelectBank i) ]
                     [ placeholder_img 40 [ alignLeft ]
-                    , Element.el [] <| text val
-                    , Element.el [ alignRight ] <|
-                        Element.image [ height (px 20), width (px 20), centerY ]
-                            { src =
-                                if active then
-                                    check_url
-
-                                else
-                                    circle_url
-                            , description = "check circle"
-                            }
+                    , el [] <| text val
+                    , Element.image [ height (px 20), width (px 20), centerY, alignRight ]
+                        { src = icon_url active
+                        , description = ""
+                        }
                     ]
                 , if active then
                     pay_button
@@ -483,49 +512,22 @@ netbanking_tab model device =
                 _ ->
                     Styles.white
 
-        tab_header =
-            case device of
-                Phone ->
-                    Element.el
-                        [ height (px 50)
-                        , paddingXY 30 0
-                        ]
-                    <|
-                        Element.el [ width fill, alignBottom, Font.color Styles.text_grey ] <|
-                            text "Popular Banks"
-
-                _ ->
-                    Element.el
-                        [ height (px 60)
-                        , width fill
-                        , Border.widthEach { edges | bottom = 1 }
-                        , Border.color Styles.light_grey
-                        , paddingEach { edges | bottom = 20, left = 30, top = 25 }
-                        ]
-                    <|
-                        Element.el [ alignBottom ] (text "NetBanking")
-
         border_shadow =
             if is_phone then
-                Border.shadow
-                    { offset = ( 0, 0 )
-                    , size = 1
-                    , blur = 2
-                    , color = rgba255 0 0 0 0.1
-                    }
+                Styles.border_shadow
 
             else
                 Border.width 0
     in
-    Element.column
+    column
         [ width fill
         , height fill
-        , spacing 20
+        , spacing Styles.sp_sml
         , Background.color bg_color
         ]
-        [ tab_header
-        , Element.column [ width fill, paddingXY 30 0, spacing 20 ]
-            [ Element.row
+        [ tab_header "NetBanking" device
+        , column [ width fill, paddingXY Styles.pd_med 0, spacing Styles.sp_sml ]
+            [ row
                 [ height (px 100)
                 , width fill
                 , spacing 50
@@ -533,7 +535,7 @@ netbanking_tab model device =
                 , Border.rounded 10
                 , border_shadow
                 , if is_phone then
-                    paddingXY 20 0
+                    paddingXY Styles.pd_med 0
 
                   else
                     padding 0
@@ -544,13 +546,13 @@ netbanking_tab model device =
                 , popular_bank "SBI"
                 ]
             ]
-        , Element.column [ height fill, width fill, paddingXY 30 0, spacing 20 ]
-            [ Element.el [ width fill ] <| searchbar model.search
-            , Element.column
+        , column [ height fill, width fill, paddingXY 30 0, spacing 20 ]
+            [ el [ width fill ] <| searchbar model.search
+            , column
                 [ width fill
                 , height fill
                 , if is_phone then
-                    paddingXY 20 0
+                    paddingXY Styles.pd_med 0
 
                   else
                     padding 0
@@ -575,27 +577,22 @@ wallet_tab model device =
                 _ ->
                     False
 
-        pay_button =
-            Element.el [ paddingXY 60 0, width fill, height (px 40), Font.color Styles.white, Font.bold, Font.size 13 ] <|
-                Element.el [ width (px 200), height fill, Background.color Styles.red, Border.rounded 2 ] <|
-                    Element.el [ centerX, centerY ] <|
-                        text "Proceed to Pay"
+        icon_url active =
+            if active then
+                check_url
+
+            else
+                circle_url
 
         wallet_list_item i ( val, active ) =
-            Element.column [ width fill ]
-                [ Element.row [ width fill, height (px 60), spacing 20, onClick (SelectWallet i) ]
+            column [ width fill ]
+                [ row [ width fill, height (px 60), spacing 20, onClick (SelectWallet i) ]
                     [ placeholder_img 40 [ alignLeft ]
-                    , Element.el [] <| text val
-                    , Element.el [ alignRight ] <|
-                        Element.image [ height (px 20), width (px 20), centerY ]
-                            { src =
-                                if active then
-                                    check_url
-
-                                else
-                                    circle_url
-                            , description = "check circle"
-                            }
+                    , text val
+                    , Element.image [ height (px 20), width (px 20), centerY, alignRight ]
+                        { src = icon_url active
+                        , description = ""
+                        }
                     ]
                 , if active then
                     pay_button
@@ -603,28 +600,6 @@ wallet_tab model device =
                   else
                     Element.none
                 ]
-
-        tab_header =
-            case device of
-                Phone ->
-                    Element.el
-                        [ height (px 50)
-                        , paddingXY 30 0
-                        ]
-                    <|
-                        Element.el [ width fill, alignBottom, Font.color Styles.text_grey ] <|
-                            text "Wallets"
-
-                _ ->
-                    Element.el
-                        [ height (px 60)
-                        , width fill
-                        , Border.widthEach { edges | bottom = 1 }
-                        , Border.color Styles.light_grey
-                        , paddingEach { edges | bottom = 20, left = 30, top = 25 }
-                        ]
-                    <|
-                        Element.el [ alignBottom ] (text "Wallets")
 
         bg_color =
             case device of
@@ -636,32 +611,27 @@ wallet_tab model device =
 
         border_shadow =
             if is_phone then
-                Border.shadow
-                    { offset = ( 0, 0 )
-                    , size = 1
-                    , blur = 2
-                    , color = rgba255 0 0 0 0.1
-                    }
+                Styles.border_shadow
 
             else
                 Border.width 0
     in
-    Element.column
+    column
         [ width fill
         , height fill
-        , spacing 20
+        , spacing Styles.sp_sml
         , Background.color bg_color
         ]
-        [ tab_header
-        , Element.column [ width fill, paddingXY 30 0, spacing 20 ]
-            [ Element.column
+        [ tab_header "Wallets" device
+        , column [ width fill, paddingXY Styles.pd_med 0, spacing Styles.sp_sml ]
+            [ column
                 [ width fill
-                , spacing 20
+                , spacing Styles.sp_sml
                 , Background.color Styles.white
                 , Border.rounded 10
                 , border_shadow
                 , if is_phone then
-                    paddingXY 20 30
+                    paddingXY Styles.pd_sml Styles.pd_med
 
                   else
                     padding 0
@@ -673,13 +643,13 @@ wallet_tab model device =
 
 
 upi_tab =
-    Element.column [ width fill, height fill ] [ Element.none ]
+    column [ width fill, height fill ] [ Element.none ]
 
 
 view_tab : Model -> DeviceClass -> Element Msg
 view_tab model device =
     let
-        stuff =
+        content =
             case model.tab of
                 Just Credit ->
                     credit_tab model device
@@ -696,8 +666,8 @@ view_tab model device =
                 Nothing ->
                     text ""
     in
-    Element.column [ width fill, height fill, Background.color Styles.white ]
-        [ stuff
+    column [ width fill, height fill, Background.color Styles.white ]
+        [ content
         ]
 
 
@@ -705,38 +675,35 @@ view_tab model device =
 -- Sidebar/Menu
 
 
-link : String -> Msg -> Bool -> Element Msg
-link val callback active =
+desktop_link : String -> Msg -> Bool -> Element Msg
+desktop_link val callback active =
     let
+        base_styles =
+            [ onClick callback
+            , width fill
+            , height (px 60)
+            , paddingEach { edges | left = Styles.pd_sml }
+            , Border.widthEach { edges | left = 3 }
+            , Border.color Styles.transparent
+            , mouseOver active_styles
+            ]
+
         active_styles =
             [ Background.color Styles.white, Border.color Styles.red ]
 
-        extra_styles =
+        styles =
             if active then
-                active_styles
+                base_styles ++ active_styles
 
             else
-                []
+                base_styles
     in
-    Element.el
-        ([ onClick callback
-         , width fill
-         , height (px 60)
-         , paddingEach { edges | left = 20 }
-         , Border.widthEach { edges | left = 3 }
-         , Border.color Styles.transparent
-         , mouseOver active_styles
-         ]
-            ++ extra_styles
-        )
-    <|
-        Element.el [ centerY ] <|
-            text val
+    el styles <| el [ centerY ] <| text val
 
 
-menu_link : String -> Msg -> Bool -> Element Msg
-menu_link val callback active =
-    Element.row
+phone_link : String -> Msg -> Bool -> Element Msg
+phone_link val callback active =
+    row
         [ width fill
         , height (px 70)
         , Border.rounded 7
@@ -747,26 +714,22 @@ menu_link val callback active =
         , onClick callback
         , spacing 30
         ]
-        [ Element.el [ alignLeft ] <| placeholder_img 40 []
-        , Element.el [] <| text val
-        , Element.el [ alignRight ] <| Element.image [ height (px 20), width (px 20), centerY ] { src = arrow_right_url, description = "" }
+        [ el [ alignLeft ] <| placeholder_img 40 []
+        , el [] <| text val
+        , el [ alignRight ] <| Element.image [ height (px 20), width (px 20), centerY ] { src = arrow_right_url, description = "" }
         ]
-
-
-number_box =
-    Element.el [ width fill, height (px 15), Background.color Styles.light_grey ] <| text ""
 
 
 menu : Model -> DeviceClass -> Element Msg
 menu model device =
     let
-        ( link_container, styles ) =
+        ( link_container, attrs ) =
             case device of
                 Phone ->
-                    ( menu_link, [ paddingXY 20 30, spacing 15 ] )
+                    ( phone_link, [ paddingXY 20 30, spacing 15 ] )
 
                 _ ->
-                    ( link, [ spacing 2 ] )
+                    ( desktop_link, [ spacing 2 ] )
 
         ( active, selected ) =
             case model.tab of
@@ -782,13 +745,19 @@ menu model device =
                     Element.none
 
                 _ ->
-                    Element.row [ alignBottom, centerX, Font.size 16, Font.bold ]
-                        [ Element.el [ Font.color Styles.text_grey ] <| text "Powered by "
+                    row [ alignBottom, centerX, Font.size 16, Font.bold ]
+                        [ el [ Font.color Styles.text_grey ] <| text "Powered by "
                         , placeholder_img 30 []
-                        , Element.el [] <| text "JUSPAY"
+                        , el [] <| text "JUSPAY"
                         ]
+
+        base_styles =
+            [ width fill, height fill, paddingEach { edges | bottom = 40 }, Background.color Styles.lighter_grey ]
+
+        styles =
+            base_styles ++ attrs
     in
-    Element.column ([ width fill, height fill, paddingEach { edges | bottom = 40 }, Background.color Styles.lighter_grey ] ++ styles)
+    column styles
         [ link_container "Credit / Debit Card" (ChangeTab Credit) (active && selected == Credit)
         , link_container "Netbanking" (ChangeTab Netbanking) (active && selected == Netbanking)
         , link_container "Wallet" (ChangeTab Wallet) (active && selected == Wallet)
@@ -798,43 +767,68 @@ menu model device =
 
 
 
--- TODO separate the base reusable components from the ones concerned with layout
--- if the el has the same functionality then keep the same container and pass in the device type
+-- Body
 
 
-labeling =
-    Element.el [] <| text "Payment Method"
-
-
-desktop_body model =
-    Element.el [ width fill, height fill, paddingXY 20 0 ] <|
-        Element.column
-            [ width (fill |> maximum max_width)
-            , height fill
-            , centerX
-            , Background.color Styles.light_grey
-            , spacing 20
-            ]
-            [ labeling
-            , Element.row [ height fill, width fill ]
-                [ Element.el [ width (px 350), height fill ] <| menu model Desktop
-                , view_tab model Desktop
-                ]
-            ]
-
-
-phone_body model =
-    -- TODO can merge this with desktop body tbh
+body model device =
     let
-        content =
+        base_styles =
+            [ width fill, height fill ]
+
+        attrs =
+            case device of
+                Phone ->
+                    []
+
+                _ ->
+                    [ paddingXY Styles.pd_sml 0 ]
+
+        styles =
+            base_styles ++ attrs
+
+        labeling =
+            el [] <| text "Payment Method"
+
+        phone_content =
             case model.tab of
                 Nothing ->
                     menu model Phone
 
                 Just x ->
                     view_tab model Phone
+
+        desktop_content =
+            column
+                [ width (fill |> maximum max_width)
+                , height fill
+                , centerX
+                , Background.color Styles.light_grey
+                , spacing Styles.sp_sml
+                ]
+                [ labeling
+                , row [ height fill, width fill ]
+                    [ el [ width (px 350), height fill ] <| menu model Desktop
+                    , view_tab model Desktop
+                    ]
+                ]
+
+        content =
+            case device of
+                Phone ->
+                    phone_content
+
+                _ ->
+                    desktop_content
     in
-    Element.el [ height fill, width fill ] <| content
+    el styles <| content
+
+
+
+-- Header
+
+
+number_box =
+    el [ width fill, height (px 15), Background.color Styles.light_grey ] <| text ""
 
 
 header_info : DeviceClass -> Element Msg
@@ -846,7 +840,7 @@ header_info device =
                     Element.none
 
                 _ ->
-                    Element.el
+                    el
                         [ width (px 1)
                         , height fill
                         , centerX
@@ -855,15 +849,15 @@ header_info device =
                         ]
                         Element.none
     in
-    Element.row [ width fill, height (fillPortion 1) ]
-        [ Element.column [ alignLeft, spacing 5 ]
-            [ Element.el [ Font.color Styles.text_grey, Font.size 14 ] <| text "Mobile Number "
+    row [ width fill, height (fillPortion 1) ]
+        [ column [ alignLeft, spacing 5 ]
+            [ el [ Font.color Styles.text_grey, Font.size 14 ] <| text "Mobile Number "
             , number_box
             ]
         , divider
-        , Element.column [ alignRight, spacing 5 ]
-            [ Element.el [ Font.color Styles.text_grey, Font.size 14 ] <| text "Amount "
-            , Element.el [ Font.bold, Font.size 15 ] <| text "₹457"
+        , column [ alignRight, spacing 5 ]
+            [ el [ Font.color Styles.text_grey, Font.size 14 ] <| text "Amount "
+            , el [ Font.bold, Font.size 15 ] <| text "₹457"
             ]
         ]
 
@@ -871,14 +865,6 @@ header_info device =
 header_title : String -> Msg -> DeviceClass -> Element Msg
 header_title title callback device =
     let
-        styles =
-            case device of
-                Phone ->
-                    [ Font.color Styles.red, height (fillPortion 1) ]
-
-                _ ->
-                    [ height fill, Font.bold, Font.size 15, Font.color Styles.black ]
-
         back_icon =
             case device of
                 Phone ->
@@ -886,8 +872,19 @@ header_title title callback device =
 
                 _ ->
                     Element.none
+
+        attrs =
+            case device of
+                Phone ->
+                    [ Font.color Styles.red, height (fillPortion 1) ]
+
+                _ ->
+                    [ height fill, Font.bold, Font.size 15, Font.color Styles.black ]
+
+        styles =
+            attrs ++ [ onClick callback, width fill ]
     in
-    Element.row (styles ++ [ onClick callback, width fill ])
+    row styles
         [ back_icon
         , text title
         ]
@@ -916,10 +913,10 @@ header tab device =
         container =
             case device of
                 Phone ->
-                    Element.column [ width fill, height (px 80) ]
+                    column [ width fill, height (px 80) ]
 
                 _ ->
-                    Element.row [ width (fill |> maximum max_width), height (px 60), centerX ]
+                    row [ width (fill |> maximum max_width), height (px 60), centerX ]
 
         content =
             case device of
@@ -927,51 +924,52 @@ header tab device =
                     [ back, header_info device ]
 
                 _ ->
-                    [ Element.el [ width (fill |> maximum 350) ] <| header_title "Order summary" Back device
-                    , Element.el [ width (fill |> maximum 350) ] <| header_info device
+                    [ el [ width (fill |> maximum 350) ] <| header_title "Order summary" Back device
+                    , el [ width (fill |> maximum 350) ] <| header_info device
                     ]
     in
-    Element.el [ width fill, paddingXY 20 0, Background.color Styles.white ] <| container content
+    el [ width fill, paddingXY Styles.pd_sml 0, Background.color Styles.white ] <| container content
 
 
-desktop_view model =
-    Element.column [ width fill, height fill, spacing 20, Background.color Styles.light_grey ]
-        [ header model.tab Desktop
-        , desktop_body model
-        ]
 
-
-phone_view model =
-    Element.column [ width fill, height fill, spacing 20 ]
-        [ header model.tab Phone
-        , phone_body model
-        ]
+-- Page
 
 
 render : Model -> Element Msg
 render model =
     let
-
         device =
             Element.classifyDevice model.window
 
         _ =
             Debug.log "device" device
 
-        page_elements =
+        base_styles =
+            [ width fill, height fill, spacing Styles.sp_sml ]
+
+        container attrs content =
+            column (base_styles ++ attrs) content
+
+        page =
             case device.class of
                 Phone ->
-                    [ phone_view model ]
+                    container []
+                        [ header model.tab Phone
+                        , body model Phone
+                        ]
 
                 _ ->
-                    [ desktop_view model ]
+                    container [ Background.color Styles.light_grey ]
+                        [ header model.tab Desktop
+                        , body model Desktop
+                        ]
     in
-    row
+    el
         [ width fill
         , height fill
         , Font.family [ Font.typeface "Open Sans" ]
         ]
-        page_elements
+        page
 
 
 view : Model -> TitleAndContent Msg
@@ -979,6 +977,10 @@ view model =
     { title = "Payments"
     , content = render model
     }
+
+
+
+-- Subscriptions
 
 
 subscriptions : Model -> Sub Msg

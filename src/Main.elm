@@ -12,7 +12,7 @@ import Pages.NotFound as NotFound
 import Pages.Payment as Payment
 import RemoteData as RemoteData exposing (RemoteData(..), WebData)
 import Route exposing (Route)
-import Session exposing (Session)
+import Session exposing (Session,Flags)
 import Task
 import Url exposing (Url)
 
@@ -31,11 +31,11 @@ type alias Model =
 -- MODEL
 
 
-init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url navKey =
+init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url navKey =
     let
         model =
-            Model (Session navKey) Redirect
+            Model (Session navKey flags) Redirect
 
         route = Just Route.Payment
     in
@@ -143,7 +143,7 @@ view model =
 
 -- MAIN
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.application
         { init = init

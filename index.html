@@ -18,7 +18,8 @@
   </head>
   <body>
       <script>
-       var flags = {}
+       var flags = {height:window.innerHeight, width: window.innerWidth }
+       console.log("Starting dimensions", flags)
 
        var app = Elm.Main.init({
          flags: flags

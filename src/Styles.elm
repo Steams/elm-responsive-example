@@ -70,25 +70,34 @@ corners =
     }
 
 
-padding_small =
+border_shadow =
+    Border.shadow
+        { offset = ( 0, 0 )
+        , size = 1
+        , blur = 2
+        , color = rgba255 0 0 0 0.1
+        }
+
+
+pd_sml =
     20
 
 
-padding_med =
+pd_med =
     30
 
 
-padding_large =
+pd_lrg =
     50
 
 
-spacing_small =
+sp_sml =
     20
 
 
-spacing_med =
+sp_med =
     30
 
 
-spacing_large =
+sp_lrg =
     50
